@@ -72,49 +72,27 @@ func getRental(c *gin.Context, db *sql.DB) {
 
 	row := db.QueryRow(query, rentalID)
 	err := row.Scan(
-		&rental.ID,               //1
-		&rental.Name,             //2
-		&rental.Description,      //3
-		&rental.Type,             //4
-		&rental.Make,             //5
-		&rental.Model,            //6
-		&rental.Year,             //7
-		&rental.Length,           //8
-		&rental.Sleeps,           //9
-		&rental.PrimaryImageURL,  //10
-		&rental.Price.Day,        //11
-		&rental.Location.City,    //12
-		&rental.Location.State,   //13
-		&rental.Location.Zip,     //14
-		&rental.Location.Country, //15
-		&rental.Location.Lat,     //16
-		&rental.Location.Lng,     //17
-		&rental.User.ID,          //18
-		&rental.User.FirstName,   //19
-		&rental.User.LastName,    //20
+		&rental.ID,
+		&rental.Name,
+		&rental.Description,
+		&rental.Type,
+		&rental.Make,
+		&rental.Model,
+		&rental.Year,
+		&rental.Length,
+		&rental.Sleeps,
+		&rental.PrimaryImageURL,
+		&rental.Price.Day,
+		&rental.Location.City,
+		&rental.Location.State,
+		&rental.Location.Zip,
+		&rental.Location.Country,
+		&rental.Location.Lat,
+		&rental.Location.Lng,
+		&rental.User.ID,
+		&rental.User.FirstName,
+		&rental.User.LastName,
 	)
-	/*
-		r.id, 1
-				r.name, 2
-				r.description, 3
-				r.type, 4
-				r.vehicle_make, 5
-				r.vehicle_model, 6
-				r.vehicle_year, 7
-				r.vehicle_length, 8
-				r.sleeps, 9
-				r.primary_image_url, 10
-				r.price_per_day, 11
-				r.home_city, 12
-				r.home_state, 13
-				r.home_zip, 14
-				r.home_country, 15
-				r.lat, 16
-				r.lng, 17
-				u.id as user_id, 18
-				u.first_name as user_first_name, 19
-				u.last_name as user_last_name 20
-	*/
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(400, gin.H{"error": "Not Found"})
@@ -260,6 +238,14 @@ func getRentals(c *gin.Context, db *sql.DB) {
 			sortField = "r.sleeps"
 		case "primary_image_url":
 			sortField = "r.primary_image_url"
+		case "city":
+			sortField = "r.home_city"
+		case "state":
+			sortField = "r.home_state"
+		case "zip":
+			sortField = "r.home_zip"
+		case "country":
+			sortField = "r.home_country"
 		case "lat":
 			sortField = "r.lat"
 		case "lng":
@@ -310,26 +296,26 @@ func getRentals(c *gin.Context, db *sql.DB) {
 	for rows.Next() {
 		rental := Rental{}
 		err := rows.Scan(
-			&rental.ID,               //1
-			&rental.Name,             //2
-			&rental.Description,      //3
-			&rental.Type,             //4
-			&rental.Make,             //5
-			&rental.Model,            //6
-			&rental.Year,             //7
-			&rental.Length,           //8
-			&rental.Sleeps,           //9
-			&rental.PrimaryImageURL,  //10
-			&rental.Price.Day,        //11
-			&rental.Location.City,    //12
-			&rental.Location.State,   //13
-			&rental.Location.Zip,     //14
-			&rental.Location.Country, //15
-			&rental.Location.Lat,     //16
-			&rental.Location.Lng,     //17
-			&rental.User.ID,          //18
-			&rental.User.FirstName,   //19
-			&rental.User.LastName,    //20
+			&rental.ID,
+			&rental.Name,
+			&rental.Description,
+			&rental.Type,
+			&rental.Make,
+			&rental.Model,
+			&rental.Year,
+			&rental.Length,
+			&rental.Sleeps,
+			&rental.PrimaryImageURL,
+			&rental.Price.Day,
+			&rental.Location.City,
+			&rental.Location.State,
+			&rental.Location.Zip,
+			&rental.Location.Country,
+			&rental.Location.Lat,
+			&rental.Location.Lng,
+			&rental.User.ID,
+			&rental.User.FirstName,
+			&rental.User.LastName,
 		)
 		if err != nil {
 			// Handle the error
