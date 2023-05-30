@@ -8,6 +8,8 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=testingwithrentals
+    networks:
+      - mynetwork
     ports:
       - "5434:5432"
     volumes:
@@ -15,5 +17,10 @@ services:
   app:
     build:
       context: .
+    networks:
+      - mynetwork
     ports:
       - 8080:8080
+networks:
+  mynetwork:
+    driver: bridge

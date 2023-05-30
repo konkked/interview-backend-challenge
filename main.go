@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -23,8 +22,8 @@ type Rental struct {
 	Sleeps          int     `json:"sleeps"`
 	PrimaryImageURL string  `json:"primary_image_url"`
 	Price           struct {
-		Day int `json:"day"`
-	} `json:"price"`
+		Day float64 `json:"day"`
+	} `json:"price_per_day"`
 	Location struct {
 		City    string  `json:"city"`
 		State   string  `json:"state"`
@@ -42,26 +41,88 @@ type Rental struct {
 
 func getRental(c *gin.Context, db *sql.DB) {
 	// Read the single rental from the database
-	rentalID := c.Query("id")
+	rentalID := c.Param("id")
 	var rental Rental
 
-	query := `
-		SELECT r.*, u.id as user_id, u.first_name as user_first_name, u.last_name as user_last_name
-		FROM rentals r
-		JOIN users u ON r.user_id = u.id
-		WHERE r.id = $1
-	`
+	query := `SELECT 
+			r.id,
+			r.name,
+			r.description,
+			r.type,
+			r.vehicle_make,
+			r.vehicle_model,
+			r.vehicle_year,
+			r.vehicle_length,
+			r.sleeps,
+			r.primary_image_url,
+			r.price_per_day,
+			r.home_city,
+			r.home_state,
+			r.home_zip,
+			r.home_country,
+			r.lat,
+			r.lng,
+			u.id as user_id,
+			u.first_name as user_first_name,
+			u.last_name as user_last_name
+		FROM rentals r 
+		JOIN users u 
+			ON r.user_id = u.id 
+		WHERE r.id = $1`
 
 	row := db.QueryRow(query, rentalID)
-	err := row.Scan(&rental.ID, &rental.Name, &rental.Description, &rental.Type, &rental.Make, &rental.Model, &rental.Year, &rental.Length, &rental.Sleeps, &rental.PrimaryImageURL, &rental.Price.Day,
-		&rental.Location.City, &rental.Location.State, &rental.Location.Zip, &rental.Location.Country, &rental.Location.Lat, &rental.Location.Lng,
-		&rental.User.ID, &rental.User.FirstName, &rental.User.LastName)
+	err := row.Scan(
+		&rental.ID,               //1
+		&rental.Name,             //2
+		&rental.Description,      //3
+		&rental.Type,             //4
+		&rental.Make,             //5
+		&rental.Model,            //6
+		&rental.Year,             //7
+		&rental.Length,           //8
+		&rental.Sleeps,           //9
+		&rental.PrimaryImageURL,  //10
+		&rental.Price.Day,        //11
+		&rental.Location.City,    //12
+		&rental.Location.State,   //13
+		&rental.Location.Zip,     //14
+		&rental.Location.Country, //15
+		&rental.Location.Lat,     //16
+		&rental.Location.Lng,     //17
+		&rental.User.ID,          //18
+		&rental.User.FirstName,   //19
+		&rental.User.LastName,    //20
+	)
+	/*
+		r.id, 1
+				r.name, 2
+				r.description, 3
+				r.type, 4
+				r.vehicle_make, 5
+				r.vehicle_model, 6
+				r.vehicle_year, 7
+				r.vehicle_length, 8
+				r.sleeps, 9
+				r.primary_image_url, 10
+				r.price_per_day, 11
+				r.home_city, 12
+				r.home_state, 13
+				r.home_zip, 14
+				r.home_country, 15
+				r.lat, 16
+				r.lng, 17
+				u.id as user_id, 18
+				u.first_name as user_first_name, 19
+				u.last_name as user_last_name 20
+	*/
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println("Rental not found")
+			c.JSON(400, gin.H{"error": "Not Found"})
 		} else {
-			log.Fatal(err)
+			log.Println(err)
+			c.JSON(500, gin.H{"error": "Internal Server Error"})
 		}
+		return
 	}
 
 	c.JSON(200, rental)
@@ -79,7 +140,31 @@ func getRentals(c *gin.Context, db *sql.DB) {
 
 	var query string
 	var values []interface{}
-
+	query = `SELECT 
+			r.id, 
+			r.name, 
+			r.description, 
+			r.type, 
+			r.vehicle_make, 
+			r.vehicle_model, 
+			r.vehicle_year, 
+			r.vehicle_length, 
+			r.sleeps, 
+			r.primary_image_url, 
+			r.price_per_day, 
+			r.home_city, 
+			r.home_state, 
+			r.home_zip, 
+			r.home_country, 
+			r.lat, 
+			r.lng, 
+			u.id as user_id, 
+			u.first_name as user_first_name, 
+			u.last_name as user_last_name 
+		FROM rentals r 
+		JOIN users u 
+			ON r.user_id = u.id
+		WHERE 1=1`
 	if ids != "" {
 		// Split the IDs into a slice
 		idSlice := strings.Split(ids, ",")
@@ -93,10 +178,7 @@ func getRentals(c *gin.Context, db *sql.DB) {
 		}
 
 		// Construct the SQL query with the parameterized query
-		query = "SELECT r.*, u.id as user_id, u.first_name as user_first_name, u.last_name as user_last_name FROM rentals r JOIN users u ON r.user_id = u.id  WHERE r.id IN (" + strings.Join(placeholders, ",") + ")"
-	} else {
-		// No filtering required, fetch all rentals
-		query = "SELECT r.*, u.id as user_id, u.first_name as user_first_name, u.last_name as user_last_name FROM rentals JOIN users u ON r.user_id = u.id"
+		query = query + " AND r.id IN (" + strings.Join(placeholders, ",") + ") "
 	}
 
 	if priceMin != "" {
@@ -107,7 +189,7 @@ func getRentals(c *gin.Context, db *sql.DB) {
 			c.JSON(400, gin.H{"error": "Invalid price_min value"})
 			return
 		}
-		query += " AND r.price >= $" + strconv.Itoa(len(values)+1)
+		query += " AND r.price_per_day >= $" + strconv.Itoa(len(values)+1)
 		values = append(values, priceMinValue)
 	}
 
@@ -119,7 +201,7 @@ func getRentals(c *gin.Context, db *sql.DB) {
 			c.JSON(400, gin.H{"error": "Invalid price_max value"})
 			return
 		}
-		query += " AND r.price <= $" + strconv.Itoa(len(values)+1)
+		query += " AND r.price_per_day <= $" + strconv.Itoa(len(values)+1)
 		values = append(values, priceMaxValue)
 	}
 
@@ -157,7 +239,7 @@ func getRentals(c *gin.Context, db *sql.DB) {
 		sortField := ""
 		switch sort {
 		case "price":
-			sortField = "r.price"
+			sortField = "r.price_per_day"
 		case "id":
 			sortField = "r.id"
 		case "name":
@@ -167,13 +249,13 @@ func getRentals(c *gin.Context, db *sql.DB) {
 		case "type":
 			sortField = "r.type"
 		case "make":
-			sortField = "r.make"
+			sortField = "r.vehicle_make"
 		case "model":
-			sortField = "r.model"
+			sortField = "r.vehicle_model"
 		case "year":
-			sortField = "r.year"
+			sortField = "r.vehicle_year"
 		case "length":
-			sortField = "r.length"
+			sortField = "r.vehicle_length"
 		case "sleeps":
 			sortField = "r.sleeps"
 		case "primary_image_url":
@@ -228,25 +310,30 @@ func getRentals(c *gin.Context, db *sql.DB) {
 	for rows.Next() {
 		rental := Rental{}
 		err := rows.Scan(
-			&rental.ID,
-			&rental.Name,
-			&rental.Description,
-			&rental.Type,
-			&rental.Make,
-			&rental.Model,
-			&rental.Year,
-			&rental.Length,
-			&rental.Sleeps,
-			&rental.PrimaryImageURL,
-			&rental.Price,
-			&rental.Location.Lat,
-			&rental.Location.Lng,
-			&rental.User.ID,
-			&rental.User.FirstName,
-			&rental.User.LastName,
+			&rental.ID,               //1
+			&rental.Name,             //2
+			&rental.Description,      //3
+			&rental.Type,             //4
+			&rental.Make,             //5
+			&rental.Model,            //6
+			&rental.Year,             //7
+			&rental.Length,           //8
+			&rental.Sleeps,           //9
+			&rental.PrimaryImageURL,  //10
+			&rental.Price.Day,        //11
+			&rental.Location.City,    //12
+			&rental.Location.State,   //13
+			&rental.Location.Zip,     //14
+			&rental.Location.Country, //15
+			&rental.Location.Lat,     //16
+			&rental.Location.Lng,     //17
+			&rental.User.ID,          //18
+			&rental.User.FirstName,   //19
+			&rental.User.LastName,    //20
 		)
 		if err != nil {
 			// Handle the error
+			log.Println(err)
 			c.JSON(500, gin.H{"error": "Failed to retrieve rentals"})
 			return
 		}
@@ -259,17 +346,19 @@ func getRentals(c *gin.Context, db *sql.DB) {
 
 func main() {
 	// Connect to the PostgreSQL database
-	db, err := sql.Open("pgx", "postgres://root:root@localhost:5432/testingwithrentals")
+	db, err := sql.Open("pgx", "postgres://root:root@postgres:5432/testingwithrentals")
 	if err != nil {
+		log.Println("Failed to connect to database.")
 		log.Fatal("Failed to connect to the database:", err)
 	}
+	log.Println("Connected to database.")
 	defer db.Close()
 
 	// Initialize the gin engine
 	router := gin.Default()
 
 	// Define the routes and handlers
-	router.GET("/rentals/:rentalID", func(c *gin.Context) {
+	router.GET("/rentals/:id", func(c *gin.Context) {
 		getRental(c, db)
 	})
 	router.GET("/rentals", func(c *gin.Context) {

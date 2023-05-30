@@ -74,3 +74,8 @@ The rental object JSON in the response should have the following structure:
 When complete, please push your code to Github to your own account and send the link to the project or zip the project (including the `.git` directory) and send it back.
 
 Thank you and please ask if you have any questions!
+
+## How to Run
+- make sure you have docker installed
+- run command `docker compose up --build` to get the latest changes in code
+- test using the `http://localhost:8080/rentals/<id>` and `http://localhost:8080/rentals/?<query_string>` endpoints 

@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS earthdistance;
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     first_name text,
@@ -20,11 +22,11 @@ CREATE TABLE IF NOT EXISTS rentals (
     vehicle_model text,
     vehicle_year integer,
     vehicle_length numeric(4,2),
-    created timestamp with time zone,
-    updated timestamp with time zone,
     lat double precision,
     lng double precision,
-    primary_image_url text
+    primary_image_url text,
+    created timestamp with time zone,
+    updated timestamp with time zone
 );
 
 INSERT INTO "users"("id", "first_name", "last_name")
