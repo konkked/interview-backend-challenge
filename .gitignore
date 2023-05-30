@@ -1,0 +1,23 @@
+# Compiled Object files, Static and Shared libraries (.o, .a, .so)
+*.o
+*.a
+*.so
+main
+
+# Executables (.exe, .out)
+*.exe
+*.out
+
+# Dependency directories
+/vendor/
+/go.sum
+
+# Compiled Go binary
+*.test
+
+# Output directory
+/out/
+
+# IDE-specific files and directories
+.idea/
+.vscode/
