@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -38,67 +39,65 @@ type Rental struct {
 }
 
 func getRental(c *gin.Context, db *sql.DB) {
-	rental := Rental{
-		ID:       1,
-		Name:     "Sample Rental",
-		Price: struct {
-			Day int `json:"day"`
-		}{
-			Day: 100,
-		},
-		Location: struct {
-			City  string `json:"city"`
-			State string `json:"state"`
-		}{
-			City:  "Sample City",
-			State: "Sample State",
-		},
-	}
+	// Read the single rental from the database
+	rentalID := c.Query("id")
+	var rental Rental
 
+	query := `
+		SELECT r.id, r.name, r.description, r.type, r.make, r.model, r.year, r.length, r.sleeps, r.primary_image_url, r.price_day,
+		l.city, l.state, l.zip, l.country, l.lat, l.lng,
+		u.id, u.first_name, u.last_name
+		FROM rentals r
+		JOIN users u ON r.user_id = u.id
+		WHERE r.id = $1
+	`
+
+	row := db.QueryRow(query, rentalID)
+	err := row.Scan(&rental.ID, &rental.Name, &rental.Description, &rental.Type, &rental.Make, &rental.Model, &rental.Year, &rental.Length, &rental.Sleeps, &rental.PrimaryImageURL, &rental.Price.Day,
+		&rental.Location.City, &rental.Location.State, &rental.Location.Zip, &rental.Location.Country, &rental.Location.Lat, &rental.Location.Lng,
+		&rental.User.ID, &rental.User.FirstName, &rental.User.LastName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Println("Rental not found")
+		} else {
+			log.Fatal(err)
+		}
 	}
 
 	c.JSON(200, rental)
 }
 
 func getRentals(c *gin.Context, db *sql.DB) {
-	// Logic to retrieve and filter rentals based on the query parameters
-	// Use the db connection to fetch data from the PostgreSQL database
-	// Transform the data into a list of rental objects in the JSON structure
-	rentals := []Rental{
-		{
-			ID:        1,
-			Name:      "Sample Rental 1",
-			Price: struct {
-				Day int `json:"day"`
-			}{
-				Day: 100,
-			},
-			Location: struct {
-				City  string `json:"city"`
-				State string `json:"state"`
-			}{
-				City:  "Sample City 1",
-				State: "Sample State 1",
-			},
-		},
-		{
-			ID:        2,
-			Name:      "Sample Rental 2",
-			Price: struct {
-				Day int `json:"day"`
-			}{
-				Day: 200,
-			},
-			Location: struct {
-				City  string `json:"city"`
-				State string `json:"state"`
-			}{
-				City:  "Sample City 2",
-				State: "Sample State 2",
-			},
-		},
+	rentals := []Rental{}
+
+	query := `
+		SELECT r.id, r.name, r.description, r.type, r.make, r.model, r.year, r.length, r.sleeps, r.primary_image_url, r.price_day,
+		l.city, l.state, l.zip, l.country, l.lat, l.lng,
+		u.id, u.first_name, u.last_name
+		FROM rentals r
+		JOIN users u ON r.user_id = u.id
+	`
+
+	rentalRows, err := db.Query(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rentalRows.Close()
+
+	for rentalRows.Next() {
+		var rental Rental
+		err := rentalRows.Scan(&rental.ID, &rental.Name, &rental.Description, &rental.Type, &rental.Make, &rental.Model, &rental.Year, &rental.Length, &rental.Sleeps, &rental.PrimaryImageURL, &rental.Price.Day,
+			&rental.Location.City, &rental.Location.State, &rental.Location.Zip, &rental.Location.Country, &rental.Location.Lat, &rental.Location.Lng,
+			&rental.User.ID, &rental.User.FirstName, &rental.User.LastName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		rentals = append(rentals, rental)
 	}
 
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	c.JSON(200, rentals)
 }
